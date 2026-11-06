@@ -3,7 +3,7 @@ import { readFileSync, writeFileSync } from 'node:fs'
 import { chromium } from 'playwright'
 
 const root = new URL('../../void-hono-jsx/', import.meta.url)
-const config = process.env.VOID_CONFIG ?? 'vite.refresh.config.ts'
+const config = process.env.VOID_CONFIG ?? 'vite.config.ts'
 const originals = new Map()
 const edit = (name, from, to) => {
   const url = new URL(name, root)

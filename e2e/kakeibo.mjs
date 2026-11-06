@@ -12,7 +12,6 @@ execFileSync('pnpm', ['exec', 'wrangler', 'd1', 'migrations', 'apply', 'kakeibo'
 const CONFIG = 'vite.e2e.config.ts'
 writeFileSync(new URL(CONFIG, root), `
 import { cloudflare } from "@cloudflare/vite-plugin";
-import honoJsx from "vite-plugin-hono-jsx";
 import { honoKit } from "hono-kit/vite";
 import { honoKitUi } from "hono-kit-ui/vite";
 import { defineConfig } from "vite";
@@ -21,7 +20,6 @@ export default defineConfig({
   plugins: [
     honoKit(),
     ...honoKitUi(),
-    ...(process.env.NO_REFRESH ? [] : [honoJsx()]),
     cloudflare({ persistState: { path: process.env.PERSIST_PATH! } }),
   ],
 });
@@ -137,7 +135,7 @@ try {
   check('自動で反映された', await hasText('body', '円:'), true)
   check('ページを読み直した', await marked(), false)
 
-  if (!process.env.NO_REFRESH) {
+  {
     console.log('# 島でしか使わない部品を変える（読み直さないはず）')
     await openExpenses()
     create('src/components/screens/only-island.tsx', 'export const OnlyIsland = () => <small id="only">only-v1</small>;\n')
@@ -153,12 +151,6 @@ try {
     check('反映された', await hasText('#only', 'only-v2'), true)
     check('ページは読み直していない', await marked(), true)
     check('入力中の文字は残る', await page.inputValue(`${FORM} input[type=number]`), '999')
-  } else {
-    console.log('# 島の編集（プラグインなしは読み直しで反映されるはず）')
-    await openExpenses()
-    edit('src/components/screens/expense-form.island.tsx', '<button type="submit">登録</button>', '<button type="submit">登録する</button>')
-    check('自動で反映された', await hasText(FORM, '登録する'), true)
-    check('ページを読み直した', await marked(), false)
   }
 } finally {
   restore()
