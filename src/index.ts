@@ -54,6 +54,9 @@ export function register(key, name, fn, signature) {
 `
 
 const isComponentName = (name: string) => /^[A-Z]/.test(name)
+// A capitalized function may be something else (new Point(), Sum(1, 2)), and the wrapper would break it.
+// A component this misses is still updated through its importers.
+const looksLikeComponent = (source: string) => /jsx\w*\)?\s*\(|\buse[A-Z]\w*\s*\(/.test(source)
 const isHookName = (name: string) => /^use[A-Z]/.test(name)
 const isFunctionNode = (node: any) =>
   node?.type === 'ArrowFunctionExpression' || node?.type === 'FunctionExpression'
@@ -113,11 +116,20 @@ export function transformComponents(code: string, id: string) {
         }
       }
     }
-    if (declaration?.type === 'FunctionDeclaration' && declaration.id && isComponentName(declaration.id.name)) {
+    if (
+      declaration?.type === 'FunctionDeclaration' &&
+      declaration.id &&
+      isComponentName(declaration.id.name) &&
+      looksLikeComponent(code.slice(declaration.start, declaration.end))
+    ) {
       registerAfter(statement.end, declaration.id.name, code.slice(declaration.start, declaration.end))
     } else if (declaration?.type === 'VariableDeclaration') {
       const targets = declaration.declarations.filter(
-        (d: any) => d.id.type === 'Identifier' && isComponentName(d.id.name) && isFunctionNode(d.init),
+        (d: any) =>
+          d.id.type === 'Identifier' &&
+          isComponentName(d.id.name) &&
+          isFunctionNode(d.init) &&
+          looksLikeComponent(code.slice(d.start, d.end)),
       )
       if (targets.length > 0 && declaration.kind === 'const') {
         // The wrapper has to be assigned back to the binding.

@@ -126,6 +126,20 @@ try {
     check('読み直したので state は初期値', await text('hooks'), 'hooks:0')
   }
 
+  await fresh()
+  console.log('# 大文字で始まる部品以外の関数')
+  check('new で呼ぶ関数と引数が 2 つの関数が動く', await text('capital'), '1-2-7-v1')
+  edit('Capital.tsx', '-v1', '-v2')
+  check('同じファイルの部品を変えても反映される', await waitText('capital', '1-2-7-v2'), true)
+  check('親の state は残る', await text('app'), 'app:2')
+
+  await fresh()
+  console.log('# memo() で包んだ部品を変える')
+  await page.click('#memoized'); await page.click('#memoized')
+  edit('Memoized.tsx', 'memo-v1', 'memo-v2')
+  check('反映された', await page.waitForFunction(() => document.getElementById('memoized')?.textContent?.startsWith('memo-v2'), null, { timeout: 5000 }).then(() => true, () => false), true)
+  console.log(`info memoized=${await text('memoized')} 読み直しなし=${await marked()} app=${await text('app')} child=${await text('child')}`)
+
 } finally {
   restore()
   await browser.close()

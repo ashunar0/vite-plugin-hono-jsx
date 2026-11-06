@@ -1,8 +1,10 @@
 import { useState } from 'hono/jsx/dom'
 import Arrow from './Arrow'
+import { Capital } from './Capital'
 import { Child } from './Child'
 import { Hooks } from './Hooks'
 import { helperLabel } from './helper'
+import { Memoized } from './Memoized'
 
 export function App() {
   const [count, setCount] = useState(0)
@@ -14,6 +16,8 @@ export function App() {
       <Child />
       <Arrow />
       <Hooks />
+      <Memoized />
+      <Capital />
     </main>
   )
 }
