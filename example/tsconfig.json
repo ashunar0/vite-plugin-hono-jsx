@@ -1,0 +1,1 @@
+{ "compilerOptions": { "jsx": "react-jsx", "jsxImportSource": "hono/jsx/dom", "target": "ESNext", "module": "ESNext", "moduleResolution": "bundler", "strict": true, "lib": ["ESNext", "DOM"], "types": ["vite/client"], "skipLibCheck": true, "noEmit": true } }
