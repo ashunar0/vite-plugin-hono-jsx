@@ -111,6 +111,21 @@ try {
   check('ページは読み直していない', await marked(), true)
   check('子の state は残る', await text('child'), 'child-v1:3')
 
+  for (const [title, name, from, to] of [
+    ['別ファイルのカスタム hook', 'useCustom.ts', "const [value, setValue] = useState('')", "const [extra] = useState('extra')\n  ;(window as any).__extra = extra\n  const [value, setValue] = useState('')"],
+    ['同じファイルのカスタム hook', 'Hooks.tsx', "const [value] = useState('local-v1')", "const [extra] = useState('extra')\n  ;(window as any).__extra = extra\n  const [value] = useState('local-v1')"],
+  ]) {
+    await fresh()
+    await page.click('#hooks'); await page.click('#hooks')
+    console.log(`# ${title}に hook を増やす（読み直しになるはず）`)
+    edit(name, from, to)
+    await new Promise((r) => setTimeout(r, 1500))
+    console.log(`info hooks=${await text('hooks')} memo=${await text('memo')} local=${await text('local')} custom=${await text('custom')}`)
+    check('ページを読み直した', await marked(), false)
+    check('足した hook が自分の初期値を受け取る', await page.evaluate(() => window.__extra), 'extra')
+    check('読み直したので state は初期値', await text('hooks'), 'hooks:0')
+  }
+
 } finally {
   restore()
   await browser.close()

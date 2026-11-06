@@ -17,6 +17,15 @@ let generation = 0
 export const nextGeneration = () => ++generation
 export const withGeneration = (deps, current) => (deps ? [...deps, current] : deps)
 
+// A custom hook adds to the hook order of every component that calls it,
+// and the signature of those components cannot see that.
+const hookSignatures = new Map()
+export function checkHookOrder(key, signature) {
+  const previous = hookSignatures.get(key)
+  if (previous !== undefined && previous !== signature) location.reload()
+  hookSignatures.set(key, signature)
+}
+
 export function register(key, name, fn, signature) {
   let entry = registry.get(key)
   if (!entry) {
@@ -45,6 +54,7 @@ export function register(key, name, fn, signature) {
 `
 
 const isComponentName = (name: string) => /^[A-Z]/.test(name)
+const isHookName = (name: string) => /^use[A-Z]/.test(name)
 const isFunctionNode = (node: any) =>
   node?.type === 'ArrowFunctionExpression' || node?.type === 'FunctionExpression'
 const hookSignature = (source: string) =>
@@ -73,6 +83,7 @@ export function transformComponents(code: string, id: string) {
   const ast = parseAst(code) as any
   const s = new MagicString(code)
   const components = new Set<string>()
+  const hookChecks: string[] = []
   const exportedNames: string[] = []
   let hasUnknownExport = false
 
@@ -84,7 +95,24 @@ export function transformComponents(code: string, id: string) {
     )
   }
 
+  const checkHook = (name: string, source: string) => {
+    // Not the call to itself in the name of the declaration: only what it calls.
+    const body = source.slice(source.indexOf(name) + name.length)
+    hookChecks.push(
+      `__checkHookOrder(${JSON.stringify(`${id}:${name}`)}, ${JSON.stringify(hookSignature(body))});`,
+    )
+  }
+
   const visitDeclaration = (declaration: any, statement: any) => {
+    if (declaration?.type === 'FunctionDeclaration' && declaration.id && isHookName(declaration.id.name)) {
+      checkHook(declaration.id.name, code.slice(declaration.start, declaration.end))
+    } else if (declaration?.type === 'VariableDeclaration') {
+      for (const d of declaration.declarations) {
+        if (d.id.type === 'Identifier' && isHookName(d.id.name) && isFunctionNode(d.init)) {
+          checkHook(d.id.name, code.slice(d.start, d.end))
+        }
+      }
+    }
     if (declaration?.type === 'FunctionDeclaration' && declaration.id && isComponentName(declaration.id.name)) {
       registerAfter(statement.end, declaration.id.name, code.slice(declaration.start, declaration.end))
     } else if (declaration?.type === 'VariableDeclaration') {
@@ -150,11 +178,13 @@ export function transformComponents(code: string, id: string) {
     s.appendRight(deps.end, ', __generation)')
   })
 
-  if (components.size === 0 && !hasDeps) return null
+  if (components.size === 0 && !hasDeps && hookChecks.length === 0) return null
 
   s.prepend(
-    `import { register as __refresh, nextGeneration as __nextGeneration, withGeneration as __withGeneration } from ${JSON.stringify(RUNTIME_ID)};\nconst __generation = __nextGeneration();\n`,
+    `import { register as __refresh, nextGeneration as __nextGeneration, withGeneration as __withGeneration, checkHookOrder as __checkHookOrder } from ${JSON.stringify(RUNTIME_ID)};\nconst __generation = __nextGeneration();\n`,
   )
+
+  if (hookChecks.length > 0) s.append(`\n${hookChecks.join('\n')}\n`)
 
   // Only a module that exports nothing but components can take the update itself.
   // Anything else goes up to its importers, as it does without this plugin.
