@@ -171,7 +171,9 @@ export function transformComponents(code: string, id: string) {
   let hasDeps = false
   walk(ast, (node) => {
     if (node.type !== 'CallExpression' || node.callee.type !== 'Identifier') return
-    const deps = node.arguments[DEPS_INDEX[node.callee.name]]
+    const index = DEPS_INDEX[node.callee.name]
+    if (index === undefined) return
+    const deps = node.arguments[index]
     if (!deps || deps.type === 'SpreadElement') return
     hasDeps = true
     s.appendLeft(deps.start, '__withGeneration(')
@@ -209,7 +211,7 @@ export function honoJsxRefresh(): Plugin {
     },
     transform(code, id) {
       if (this.environment.config.consumer !== 'client') return
-      const file = id.split('?')[0]
+      const file = id.replace(/\?.*$/, '')
       if (!/\.[jt]sx?$/.test(file) || file.includes('/node_modules/')) return
       return transformComponents(code, file)
     },
