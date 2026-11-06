@@ -1,9 +1,15 @@
 {
   "name": "vite-plugin-hono-jsx",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "The Vite plugin for hono/jsx",
   "license": "MIT",
   "author": "ashunar0",
+  "homepage": "https://github.com/ashunar0/vite-plugin-hono-jsx#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ashunar0/vite-plugin-hono-jsx.git"
+  },
+  "bugs": "https://github.com/ashunar0/vite-plugin-hono-jsx/issues",
   "keywords": [
     "hono",
     "hono/jsx",
