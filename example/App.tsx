@@ -1,4 +1,4 @@
-import { useState } from 'hono/jsx/dom'
+import { useState } from 'hono/jsx'
 import Arrow from './Arrow'
 import { Capital } from './Capital'
 import { Child } from './Child'

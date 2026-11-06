@@ -12,7 +12,7 @@ execFileSync('pnpm', ['exec', 'wrangler', 'd1', 'migrations', 'apply', 'kakeibo'
 const CONFIG = 'vite.e2e.config.ts'
 writeFileSync(new URL(CONFIG, root), `
 import { cloudflare } from "@cloudflare/vite-plugin";
-import { honoJsxRefresh } from "hono-jsx-refresh";
+import honoJsx from "vite-plugin-hono-jsx";
 import { honoKit } from "hono-kit/vite";
 import { honoKitUi } from "hono-kit-ui/vite";
 import { defineConfig } from "vite";
@@ -21,7 +21,7 @@ export default defineConfig({
   plugins: [
     honoKit(),
     ...honoKitUi(),
-    ...(process.env.NO_REFRESH ? [] : [honoJsxRefresh()]),
+    ...(process.env.NO_REFRESH ? [] : [honoJsx()]),
     cloudflare({ persistState: { path: process.env.PERSIST_PATH! } }),
   ],
 });

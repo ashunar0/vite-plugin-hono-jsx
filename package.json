@@ -1,14 +1,16 @@
 {
-  "name": "hono-jsx-refresh",
+  "name": "vite-plugin-hono-jsx",
   "version": "0.0.0",
-  "description": "Vite plugin for hono/jsx: swap only the edited component and keep its state.",
+  "description": "The Vite plugin for hono/jsx",
   "license": "MIT",
   "author": "ashunar0",
   "keywords": [
     "hono",
+    "hono/jsx",
     "jsx",
+    "hmr",
     "vite",
-    "hmr"
+    "vite-plugin"
   ],
   "type": "module",
   "exports": {
@@ -36,7 +38,7 @@
   },
   "peerDependencies": {
     "hono": "^4.13.1",
-    "vite": ">=8"
+    "vite": "^8.0.0"
   },
   "dependencies": {
     "magic-string": "^1.4.5"

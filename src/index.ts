@@ -1,8 +1,29 @@
-// A Vite plugin: swap only the edited hono/jsx component and keep its state.
+// The Vite plugin for hono/jsx: the JSX settings, hono/jsx/dom in the browser,
+// and an update that swaps only the edited component and keeps its state.
 import MagicString from 'magic-string'
-import { parseAst, type Plugin } from 'vite'
+import { createFilter, parseAst, type FilterPattern, type Plugin } from 'vite'
 
-const RUNTIME_ID = 'virtual:hono-jsx-refresh'
+export interface Options {
+  /**
+   * The files to update in place.
+   * @default /\.[tj]sx?$/
+   */
+  include?: FilterPattern
+  /**
+   * The files to leave out. Keep node_modules in the list.
+   * @default /\/node_modules\//
+   */
+  exclude?: FilterPattern
+}
+
+// The server renders with hono/jsx. The browser only needs hono/jsx/dom.
+const BROWSER_JSX: Record<string, string> = {
+  'hono/jsx': 'hono/jsx/dom',
+  'hono/jsx/jsx-runtime': 'hono/jsx/dom/jsx-runtime',
+  'hono/jsx/jsx-dev-runtime': 'hono/jsx/dom/jsx-dev-runtime',
+}
+
+const RUNTIME_ID = 'virtual:vite-plugin-hono-jsx/refresh'
 const RESOLVED_RUNTIME_ID = '\0' + RUNTIME_ID
 
 // The wrapper never changes, so hono/jsx sees the same `tag` and keeps the node and its state.
@@ -82,7 +103,7 @@ const walk = (node: any, visit: (node: any) => void) => {
   }
 }
 
-export function transformComponents(code: string, id: string) {
+function transformComponents(code: string, id: string) {
   const ast = parseAst(code) as any
   const s = new MagicString(code)
   const components = new Set<string>()
@@ -209,23 +230,44 @@ export function transformComponents(code: string, id: string) {
   return { code: s.toString(), map: s.generateMap({ hires: 'boundary', source: id }) }
 }
 
-export function honoJsxRefresh(): Plugin {
-  return {
-    name: 'hono-jsx-refresh',
-    apply: 'serve',
-    // Found late, it would make Vite reload the page right after the first load.
-    config: () => ({ optimizeDeps: { include: ['hono/jsx/dom'] } }),
-    resolveId(id) {
-      if (id === RUNTIME_ID) return RESOLVED_RUNTIME_ID
+export default function honoJsx(options: Options = {}): Plugin[] {
+  const filter = createFilter(options.include ?? /\.[tj]sx?$/, options.exclude ?? /\/node_modules\//)
+  return [
+    {
+      name: 'vite-plugin-hono-jsx:config',
+      config: () => ({
+        oxc: { jsx: { runtime: 'automatic', importSource: 'hono/jsx' } },
+        resolve: { dedupe: ['hono'] },
+        // Found late, they would make Vite reload the page right after the first load.
+        optimizeDeps: {
+          include: ['hono/jsx/dom', 'hono/jsx/dom/jsx-runtime', 'hono/jsx/dom/jsx-dev-runtime'],
+        },
+      }),
     },
-    load(id) {
-      if (id === RESOLVED_RUNTIME_ID) return RUNTIME
+    {
+      name: 'vite-plugin-hono-jsx:browser',
+      enforce: 'pre',
+      resolveId(id, importer, resolveOptions) {
+        const target = BROWSER_JSX[id]
+        if (target === undefined || this.environment.config.consumer !== 'client') return
+        return this.resolve(target, importer, { ...resolveOptions, skipSelf: true })
+      },
     },
-    transform(code, id) {
-      if (this.environment.config.consumer !== 'client') return
-      const file = id.replace(/\?.*$/, '')
-      if (!/\.[jt]sx?$/.test(file) || file.includes('/node_modules/')) return
-      return transformComponents(code, file)
+    {
+      name: 'vite-plugin-hono-jsx:refresh',
+      apply: 'serve',
+      resolveId(id) {
+        if (id === RUNTIME_ID) return RESOLVED_RUNTIME_ID
+      },
+      load(id) {
+        if (id === RESOLVED_RUNTIME_ID) return RUNTIME
+      },
+      transform(code, id) {
+        if (this.environment.config.consumer !== 'client') return
+        const file = id.replace(/\?.*$/, '')
+        if (!filter(file)) return
+        return transformComponents(code, file)
+      },
     },
-  }
+  ]
 }

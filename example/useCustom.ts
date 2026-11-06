@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'hono/jsx/dom'
+import { useEffect, useState } from 'hono/jsx'
 
 export function useCustom() {
   const [value, setValue] = useState('')

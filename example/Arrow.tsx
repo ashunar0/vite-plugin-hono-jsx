@@ -1,4 +1,4 @@
-import { useState } from 'hono/jsx/dom'
+import { useState } from 'hono/jsx'
 
 const Arrow = () => {
   const [count, setCount] = useState(0)

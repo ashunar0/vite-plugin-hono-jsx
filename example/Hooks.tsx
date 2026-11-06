@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'hono/jsx/dom'
+import { useCallback, useEffect, useMemo, useState } from 'hono/jsx'
 import { useCustom } from './useCustom'
 
 function useLocal() {

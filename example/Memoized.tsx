@@ -1,4 +1,4 @@
-import { memo, useState } from 'hono/jsx/dom'
+import { memo, useState } from 'hono/jsx'
 
 export const Memoized = memo(() => {
   const [count, setCount] = useState(0)
